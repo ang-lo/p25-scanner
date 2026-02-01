@@ -20,7 +20,7 @@
     }
     *{margin:0;padding:0;box-sizing:border-box;}
     body{
-      font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       background:radial-gradient(circle at top,#0f172a 0,#020617 45%,#020617 100%);
       color:var(--color-text-primary);
       padding:16px;
@@ -119,13 +119,11 @@
 
     <section class="status-card">
       <div class="status-row">
-        <div>
-          <div class="status-indicator">
-            <div id="statusDot" class="dot"></div>
-            <div>
-              <div id="statusText" class="status-text">Not connected</div>
-              <div id="statusSub" class="status-sub">Pick a system and tap Connect</div>
-            </div>
+        <div class="status-indicator">
+          <div id="statusDot" class="dot"></div>
+          <div>
+            <div id="statusText" class="status-text">Not connected</div>
+            <div id="statusSub" class="status-sub">Pick a system and tap Connect</div>
           </div>
         </div>
       </div>
@@ -201,13 +199,11 @@
       mswin: {
         name: "MSWIN (Lawrence Co Public Safety)",
         freq: "851.0125 MHz",
-        // Public Lawrence Co Public Safety feed on Broadcastify [web:26]
         stream: "https://broadcastify.cdnstream1.com/33610"
       },
       lawrence: {
         name: "Lawrence Co Sheriff / Fire",
         freq: "154.0100 MHz",
-        // Sheriff & Fire Dispatch feed [web:13]
         stream: "https://broadcastify.cdnstream1.com/41199"
       }
     };
@@ -291,7 +287,7 @@
         statusSub.textContent = cfg.name + " | " + cfg.freq;
         freqVal.textContent = cfg.freq;
         addLog(`Connected to ${cfg.name}`);
-        audio.src = cfg.stream;
+        audio.src = cfg.stream;               // set source only, no auto-play
         audioSourceLabel.textContent = "Source: " + cfg.name;
         connectBtn.textContent = "Stop Decoding";
         connectBtn.classList.add("stop");
@@ -330,15 +326,10 @@
         return;
       }
       if (audio.paused) {
-        audio
-          .play()
-          .then(() => {
-            audioToggle.classList.remove("off");
-            audioToggle.textContent = "Disable Audio";
-          })
-          .catch(() => {
-            alert("Browser blocked autoplay – tap again after interaction.");
-          });
+        // direct user tap – iOS should allow this
+        audio.play();
+        audioToggle.classList.remove("off");
+        audioToggle.textContent = "Disable Audio";
       } else {
         audio.pause();
         audioToggle.classList.add("off");

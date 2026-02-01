@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>P25 Digital Scanner – Demo</title>
+  <style>
+    :root {
+      --color-bg-primary: #020617;
+      --color-bg-secondary: #0f172a;
+      --color-bg-tertiary: #1e293b;
+      --color-text-primary: #e5e7eb;
+      --color-text-secondary: #9ca3af;
+      --color-text-muted: #6b7280;
+      --color-accent: #38bdf8;
+      --color-accent-hover: #0ea5e9;
+      --color-success: #22c55e;
+      --color-warning: #f59e0b;
+      --color-error: #ef4444;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      background:radial-gradient(circle at top,#0f172a 0,#020617 45%,#020617 100%);
+      color:var(--color-text-primary);
+      padding:16px;
+      min-height:100vh;
+    }
+    .container{max-width:480px;margin:0 auto;}
+    header{text-align:center;margin-bottom:24px;}
+    h1{font-size:1.6rem;margin-bottom:6px;color:var(--color-accent);}
+    .subtitle{color:var(--color-text-secondary);font-size:0.9rem;}
+    .status-card,.panel{
+      background:var(--color-bg-secondary);
+      border-radius:16px;
+      padding:16px 18px;
+      margin-bottom:16px;
+      box-shadow:0 12px 30px rgba(15,23,42,0.8);
+    }
+    .status-row{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+    .status-indicator{display:flex;align-items:center;gap:8px;}
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background:var(--color-error);
+      animation:pulse 2s ease-in-out infinite;
+    }
+    .dot.connected{background:var(--color-success);}
+    .dot.connecting{background:var(--color-warning);}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    .status-text{font-size:0.9rem;}
+    .status-sub{color:var(--color-text-muted);font-size:0.8rem;margin-top:2px;}
+    label{display:block;font-size:0.8rem;color:var(--color-text-muted);margin-bottom:4px;}
+    select{
+      width:100%;padding:10px 12px;border-radius:10px;
+      border:1px solid #111827;background:var(--color-bg-tertiary);
+      color:var(--color-text-primary);font-size:0.9rem;
+    }
+    .btn{
+      width:100%;margin-top:12px;padding:12px;
+      border-radius:10px;border:none;
+      background:var(--color-accent);color:#020617;
+      font-weight:600;font-size:0.95rem;
+      display:flex;align-items:center;justify-content:center;gap:8px;
+    }
+    .btn:active{transform:scale(.98);}
+    .btn.stop{background:var(--color-error);}
+    .btn:disabled{opacity:.5;}
+    .panel-title{
+      font-size:0.95rem;font-weight:600;
+      color:var(--color-accent);margin-bottom:10px;
+      display:flex;align-items:center;gap:6px;
+    }
+    .pill-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;margin-bottom:8px;
+    }
+    .pill{
+      background:var(--color-bg-tertiary);
+      border-radius:10px;
+      padding:8px 10px;
+    }
+    .pill-label{font-size:0.7rem;color:var(--color-text-muted);margin-bottom:2px;}
+    .pill-value{font-size:0.9rem;font-weight:600;}
+    .log-box{
+      background:var(--color-bg-tertiary);
+      border-radius:10px;
+      padding:8px;
+      max-height:170px;
+      overflow-y:auto;
+      font-size:0.8rem;
+    }
+    .log-line{padding:4px 4px 4px 0;color:var(--color-text-secondary);}
+    .log-time{color:var(--color-text-muted);margin-right:4px;}
+    .audio-row{
+      margin-top:10px;
+      padding-top:10px;
+      border-top:1px solid #111827;
+    }
+    .audio-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+    .audio-label{font-size:0.8rem;color:var(--color-text-muted);}
+    .audio-btn{
+      padding:8px 12px;border-radius:999px;border:none;
+      font-size:0.8rem;font-weight:600;
+      background:#16a34a;color:#ecfdf5;
+    }
+    .audio-btn.off{background:#4b5563;color:#e5e7eb;}
+    .slider-row{display:flex;align-items:center;gap:8px;}
+    input[type=range]{flex:1;}
+    .info-text{font-size:0.8rem;color:var(--color-text-secondary);line-height:1.4;margin-top:6px;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📡 P25 Digital Scanner</h1>
+      <p class="subtitle">MSWIN / Lawrence County – Live Audio Demo</p>
+    </header>
+
+    <section class="status-card">
+      <div class="status-row">
+        <div>
+          <div class="status-indicator">
+            <div id="statusDot" class="dot"></div>
+            <div>
+              <div id="statusText" class="status-text">Not connected</div>
+              <div id="statusSub" class="status-sub">Pick a system and tap Connect</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">⚙️ P25 System Configuration</div>
+      <label for="systemSelect">Select P25 System</label>
+      <select id="systemSelect">
+        <option value="">-- Choose a system --</option>
+        <option value="mswin">Mississippi MSWIN (Lawrence Co public safety)</option>
+        <option value="lawrence">Lawrence Co Sheriff / Fire Dispatch</option>
+      </select>
+      <button id="connectBtn" class="btn">
+        <span>Connect to System</span>
+      </button>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">📻 Active Decoding</div>
+      <div class="pill-grid">
+        <div class="pill">
+          <div class="pill-label">Current Talkgroup</div>
+          <div id="tgVal" class="pill-value">--</div>
+        </div>
+        <div class="pill">
+          <div class="pill-label">Frequency</div>
+          <div id="freqVal" class="pill-value">--</div>
+        </div>
+        <div class="pill">
+          <div class="pill-label">Radio ID</div>
+          <div id="radioVal" class="pill-value">--</div>
+        </div>
+        <div class="pill">
+          <div class="pill-label">Signal Quality</div>
+          <div id="sigVal" class="pill-value">--</div>
+        </div>
+      </div>
+
+      <div class="audio-row">
+        <div class="audio-top">
+          <div>
+            <div class="audio-label">Audio output</div>
+            <div style="font-size:0.8rem;" id="audioSourceLabel">Not selected</div>
+          </div>
+          <button id="audioToggle" class="audio-btn off">Enable Audio</button>
+        </div>
+        <div class="slider-row">
+          <span style="font-size:0.8rem;">🔊</span>
+          <input id="volSlider" type="range" min="0" max="100" value="70" />
+          <span id="volLabel" style="font-size:0.75rem;">70%</span>
+        </div>
+        <p class="info-text">
+          This demo plays real online audio streams for Lawrence County &amp; MSWIN.
+          Talkgroup activity above is simulated but follows realistic patterns.
+        </p>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="panel-title" style="margin-bottom:6px;">📃 Activity Log</div>
+        <div id="logBox" class="log-box">
+          <div class="log-line"><span class="log-time">–</span>Select a system to start.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- hidden audio element -->
+  <audio id="scannerAudio" preload="none"></audio>
+
+  <script>
+    const systems = {
+      mswin: {
+        name: "MSWIN (Lawrence Co Public Safety)",
+        freq: "851.0125 MHz",
+        // Public Lawrence Co Public Safety feed on Broadcastify [web:26]
+        stream: "https://broadcastify.cdnstream1.com/33610"
+      },
+      lawrence: {
+        name: "Lawrence Co Sheriff / Fire",
+        freq: "154.0100 MHz",
+        // Sheriff & Fire Dispatch feed [web:13]
+        stream: "https://broadcastify.cdnstream1.com/41199"
+      }
+    };
+
+    const talkgroups = [
+      { id: "1001", name: "Sheriff Dispatch" },
+      { id: "1002", name: "Police Patrol" },
+      { id: "1003", name: "Fire/EMS" },
+      { id: "34720", name: "LC Sheriff Dispatch (MSWIN)" },
+      { id: "34725", name: "LC Law Dispatch 2" },
+      { id: "34726", name: "LC Fire Dispatch" },
+      { id: "34700", name: "Countywide Ops" }
+    ];
+
+    const dot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const statusSub = document.getElementById("statusSub");
+    const tgVal = document.getElementById("tgVal");
+    const freqVal = document.getElementById("freqVal");
+    const radioVal = document.getElementById("radioVal");
+    const sigVal = document.getElementById("sigVal");
+    const logBox = document.getElementById("logBox");
+    const connectBtn = document.getElementById("connectBtn");
+    const systemSelect = document.getElementById("systemSelect");
+    const audio = document.getElementById("scannerAudio");
+    const audioToggle = document.getElementById("audioToggle");
+    const volSlider = document.getElementById("volSlider");
+    const volLabel = document.getElementById("volLabel");
+    const audioSourceLabel = document.getElementById("audioSourceLabel");
+
+    let connected = false;
+    let activityTimer = null;
+
+    function addLog(msg) {
+      const t = new Date().toLocaleTimeString();
+      const div = document.createElement("div");
+      div.className = "log-line";
+      div.innerHTML = `<span class="log-time">${t}</span>${msg}`;
+      logBox.insertBefore(div, logBox.firstChild);
+      while (logBox.children.length > 30) {
+        logBox.removeChild(logBox.lastChild);
+      }
+    }
+
+    function startActivity() {
+      if (activityTimer) clearInterval(activityTimer);
+      activityTimer = setInterval(() => {
+        if (!connected) return;
+        const tg = talkgroups[Math.floor(Math.random() * talkgroups.length)];
+        const radioId = Math.floor(1000 + Math.random() * 9000);
+        const qualities = ["Excellent", "Good", "Fair"];
+        const q = qualities[Math.floor(Math.random() * qualities.length)];
+        const freq = freqVal.textContent || "851.xxxx MHz";
+
+        tgVal.textContent = `${tg.id} - ${tg.name}`;
+        radioVal.textContent = radioId;
+        sigVal.textContent = q;
+        freqVal.textContent = freq;
+        addLog(`[TG ${tg.id}] ${tg.name} – Radio ${radioId} transmitting (${q})`);
+      }, 3000);
+    }
+
+    function connect() {
+      const key = systemSelect.value;
+      if (!key || !systems[key]) {
+        alert("Select a P25 system first.");
+        return;
+      }
+      const cfg = systems[key];
+      dot.classList.remove("connected");
+      dot.classList.add("connecting");
+      statusText.textContent = "Connecting…";
+      statusSub.textContent = cfg.name + " | " + cfg.freq;
+      connectBtn.disabled = true;
+
+      setTimeout(() => {
+        connected = true;
+        dot.classList.remove("connecting");
+        dot.classList.add("connected");
+        statusText.textContent = "Connected & Decoding";
+        statusSub.textContent = cfg.name + " | " + cfg.freq;
+        freqVal.textContent = cfg.freq;
+        addLog(`Connected to ${cfg.name}`);
+        audio.src = cfg.stream;
+        audioSourceLabel.textContent = "Source: " + cfg.name;
+        connectBtn.textContent = "Stop Decoding";
+        connectBtn.classList.add("stop");
+        connectBtn.disabled = false;
+        startActivity();
+      }, 1500);
+    }
+
+    function disconnect() {
+      connected = false;
+      dot.classList.remove("connected","connecting");
+      statusText.textContent = "Not connected";
+      statusSub.textContent = "Pick a system and tap Connect";
+      tgVal.textContent = "--";
+      freqVal.textContent = "--";
+      radioVal.textContent = "--";
+      sigVal.textContent = "--";
+      if (activityTimer) clearInterval(activityTimer);
+      addLog("Disconnected from system.");
+      audio.pause();
+      audio.currentTime = 0;
+      audioToggle.classList.add("off");
+      audioToggle.textContent = "Enable Audio";
+      connectBtn.textContent = "Connect to System";
+      connectBtn.classList.remove("stop");
+    }
+
+    connectBtn.addEventListener("click", () => {
+      if (!connected) connect();
+      else disconnect();
+    });
+
+    audioToggle.addEventListener("click", () => {
+      if (!audio.src) {
+        alert("Connect to a system first.");
+        return;
+      }
+      if (audio.paused) {
+        audio
+          .play()
+          .then(() => {
+            audioToggle.classList.remove("off");
+            audioToggle.textContent = "Disable Audio";
+          })
+          .catch(() => {
+            alert("Browser blocked autoplay – tap again after interaction.");
+          });
+      } else {
+        audio.pause();
+        audioToggle.classList.add("off");
+        audioToggle.textContent = "Enable Audio";
+      }
+    });
+
+    volSlider.addEventListener("input", e => {
+      const v = e.target.value;
+      audio.volume = v / 100;
+      volLabel.textContent = v + "%";
+    });
+
+    audio.volume = 0.7;
+  </script>
+</body>
+</html>
